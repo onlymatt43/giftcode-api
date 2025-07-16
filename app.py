@@ -8,6 +8,14 @@ import qrcode
 import zipfile
 import json
 
+# Chargement du fichier JSON externe avec les liens par produit
+try:
+    with open("redirect_links.json", "r") as f:
+        site_by_product = json.load(f)
+except Exception:
+    site_by_product = {}
+
+DEFAULT_LINK = "https://tonsite-defaut.com/unlock"
 app = Flask(__name__)
 
 TOKENS_FILE = "tokens.json"
@@ -105,7 +113,7 @@ def webhook():
         payload = request.form
         product = payload.get("product_name", "Produit")
         count = int(payload.get("quantity", 1))
-
+link = site_by_product.get(product, DEFAULT_LINK)
         response = app.test_client().post("/generate", json={
             "count": count,
             "duration": 60,

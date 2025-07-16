@@ -1,113 +1,83 @@
-from flask import Flask, request, jsonify, make_response
-import json
-import time
-import secrets
-import os
+from flask import Flask, request, jsonify, redirect
 import sqlite3
+import uuid
+import datetime
 
 app = Flask(__name__)
 
-# Chargement du fichier JSON externe avec les liens et durées
-try:
-    with open("product_catalog.json", "r") as f:
-        product_catalog = json.load(f)
-except:
-    product_catalog = {}
+db_path = "tokens.db"
 
-DEFAULT_LINK = "https://monsite.com/unlock"
-DEFAULT_DURATION = 60  # en minutes
+def get_ip():
+    return request.remote_addr or "0.0.0.0"
 
-@app.route("/payhip-webhook", methods=["POST"])
-def webhook():
-    payload = request.form or request.get_json() or {}
-    product = payload.get("product_name", "").strip()
-    ip = request.remote_addr
+def insert_token(token, link, ip, valid_until):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("INSERT INTO tokens (token, link, ip, valid_until) VALUES (?, ?, ?, ?)", (token, link, ip, valid_until))
+    conn.commit()
+    conn.close()
 
-    if not product:
-        return "Produit manquant", 400
-
-    link = product_catalog.get(product, {}).get("link", DEFAULT_LINK)
-    duration = product_catalog.get(product, {}).get("duration", DEFAULT_DURATION)
-
-    token = str(uuid.uuid4())
-    valid_until = int(time.time()) + duration * 60
-
-    try:
-        conn = sqlite3.connect("tokens.db")
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO tokens (token, link, ip, valid_until)
-            VALUES (?, ?, ?, ?)
-        """, (token, link, ip, valid_until))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-    return jsonify({"token": token}), 200
-
+def is_token_valid(token, ip):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("SELECT link, valid_until FROM tokens WHERE token=? AND ip=?", (token, ip))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    link, valid_until = row
+    now = int(datetime.datetime.utcnow().timestamp())
+    if now > valid_until:
+        return None
+    return link
 
 @app.route("/validate")
 def validate():
     token = request.args.get("token")
+    ip = get_ip()
     if not token:
-        return "Access denied: No token", 403
+        return jsonify({"error": "Missing token"}), 400
+    link = is_token_valid(token, ip)
+    if not link:
+        return jsonify({"error": "Invalid or expired token"}), 403
+    return redirect(link, code=302)
 
+@app.route("/payhip-webhook", methods=["POST"])
+def payhip_webhook():
     try:
-        conn = sqlite3.connect("tokens.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT link, ip, valid_until FROM tokens WHERE token = ?", (token,))
-        row = cursor.fetchone()
-        conn.close()
+        data = request.get_json(force=True)
     except Exception:
-        return "Access denied: DB error", 403
+        data = request.form.to_dict()
 
-    if not row:
-        return "Access denied: Invalid token", 403
+    print("\n✅ Webhook reçu:", data)
 
-    link, ip, valid_until = row
+    if data.get("event") != "order.completed":
+        return jsonify({"error": "Ignored event"}), 200
 
-    if ip != request.remote_addr:
-        return "Access denied: IP mismatch", 403
+    # Exemple basique, adapter selon ton setup produit Payhip
+    link = "https://video.onlymatt.ca/unlock"
+    token = str(uuid.uuid4()).replace("-", "").upper()[:16]
+    ip = get_ip()
+    valid_minutes = 10
+    expires_at = int(datetime.datetime.utcnow().timestamp()) + (valid_minutes * 60)
 
-    now = int(time.time())
-    if now > valid_until:
-        return "Access denied: Token expired", 403
+    insert_token(token, link, ip, expires_at)
 
-    return jsonify({"access": True, "link": link}), 200
+    print(f"\n✅ Token généré et inséré: {token}")
+    return jsonify({"status": "ok", "token": token})
 
-
-@app.route("/unlock")
-def unlock_page():
-    return "<h1>✅ Page débloquée avec succès !</h1>"
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
 @app.route("/debug-tokens")
 def debug_tokens():
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
     try:
-        conn = sqlite3.connect("tokens.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM tokens")
-        rows = cursor.fetchall()
-        conn.close()
+        c.execute("SELECT * FROM tokens")
+        rows = c.fetchall()
         return jsonify({"tokens": rows})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-def init_db():
-    import sqlite3
-    conn = sqlite3.connect("tokens.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tokens (
-            token TEXT PRIMARY KEY,
-            link TEXT NOT NULL,
-            ip TEXT NOT NULL,
-            valid_until INTEGER NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+        return jsonify({"error": str(e)})
+    finally:
+        conn.close()
 
-init_db()   
+if __name__ == "__main__":
+    app.run(debug=True)

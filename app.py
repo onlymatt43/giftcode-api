@@ -94,4 +94,20 @@ def debug_tokens():
         conn.close()
         return jsonify({"tokens": rows})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500    
+        return jsonify({"error": str(e)}), 500
+def init_db():
+    import sqlite3
+    conn = sqlite3.connect("tokens.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tokens (
+            token TEXT PRIMARY KEY,
+            link TEXT NOT NULL,
+            ip TEXT NOT NULL,
+            valid_until INTEGER NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()   

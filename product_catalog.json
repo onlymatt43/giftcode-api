@@ -1,14 +1,14 @@
 {
   "Carte Cadeau 30 min": {
-    "link": "https://tonsite1.com/unlock",
+    "link": "https://onlymatt.ca/unlock",
     "duration": 30
   },
   "Carte Cadeau 1H": {
-    "link": "https://tonsite2.com/unlock",
+    "link": "https://video.onlymatt.ca/unlock",
     "duration": 60
   },
   "Carte VIP": {
-    "link": "https://vip.example.com/unlock",
+    "link": "https://stream.onlymatt.ca/unlock",
     "duration": 120
   }
 }

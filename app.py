@@ -1,102 +1,85 @@
-import os
+from flask import Flask, request, jsonify, make_response
 import json
-from flask import Flask, request, jsonify
-from datetime import datetime, timedelta
-from uuid import uuid4
+import time
+import secrets
+import os
 
 app = Flask(__name__)
 
-# === Chargement des fichiers de configuration ===
-with open("product_catalog.json") as f:
-    product_catalog = json.load(f)
+# Chargement du fichier JSON externe avec les liens et durées
+try:
+    with open("product_catalog.json", "r") as f:
+        product_catalog = json.load(f)
+except:
+    product_catalog = {}
 
-with open("redirect_links.json") as f:
-    site_by_product = json.load(f)
+DEFAULT_LINK = "https://monsite.com/unlock"
+DEFAULT_DURATION = 60  # en minutes
 
-TOKENS_FILE = "tokens.db"
-DEFAULT_LINK = "https://onlymatt.ca"
-DEFAULT_DURATION = 60
-
-# === Fonctions de gestion de tokens ===
-def load_tokens():
-    try:
-        with open(TOKENS_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-def save_tokens(tokens):
-    with open(TOKENS_FILE, "w") as f:
-        json.dump(tokens, f)
-
-# === Endpoint de génération de tokens ===
-@app.route("/generate", methods=["POST"])
-def generate():
-    try:
-        data = request.json
-        count = int(data.get("count", 1))
-        duration = int(data.get("duration", DEFAULT_DURATION))
-        product = data.get("product", "Produit")
-        tokens = load_tokens()
-
-        for _ in range(count):
-            token = str(uuid4()).replace("-", "")[:12].upper()
-            tokens.append({
-                "token": token,
-                "used": False,
-                "product": product,
-                "valid_until": (datetime.utcnow() + timedelta(minutes=duration)).isoformat()
-            })
-
-        save_tokens(tokens)
-
-        return jsonify({"tokens": [t["token"] for t in tokens[-count:]]})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-# === Endpoint de validation ===
-@app.route("/validate", methods=["GET"])
-def validate():
-    token = request.args.get("token")
-    tokens = load_tokens()
-    now = datetime.utcnow()
-
-    for t in tokens:
-        if t["token"] == token:
-            if not t["used"] and t.get("valid_until") and datetime.fromisoformat(t["valid_until"]) > now:
-                return jsonify({"valid": True, "product": t["product"]})
-            return jsonify({"valid": False, "reason": "Expired or already used"})
-    return jsonify({"valid": False, "reason": "Not found"})
-
-# === Webhook Payhip ===
 @app.route("/payhip-webhook", methods=["POST"])
 def webhook():
     try:
         payload = request.form or request.get_json() or {}
         product = payload.get("product_name", "Produit")
-        config = product_catalog.get(product, {})
-        link = config.get("link", DEFAULT_LINK)
-        duration = config.get("duration", DEFAULT_DURATION)
-        count = int(payload.get("quantity", 1))
-        site = site_by_product.get(product, DEFAULT_LINK)
+        token = secrets.token_urlsafe(12)
 
-        response = app.test_client().post("/generate", json={
-            "count": count,
-            "duration": duration,
-            "product": product
-        })
+        item = product_catalog.get(product, {})
+        link = item.get("link", DEFAULT_LINK)
+        duration = item.get("duration", DEFAULT_DURATION)
 
-        return (
-            response.data,
-            response.status_code,
-            response.headers.items()
-        )
+        ip = request.remote_addr
 
+        try:
+            with open("tokens.json", "r") as f:
+                tokens = json.load(f)
+        except:
+            tokens = {}
+
+        tokens[token] = {
+            "valid_until": int(time.time()) + duration * 60,
+            "link": link,
+            "used": False,
+            "ip": ip
+        }
+
+        with open("tokens.json", "w") as f:
+            json.dump(tokens, f)
+
+        return jsonify({"token": token}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# === Lancement serveur ===
+
+@app.route("/validate", methods=["GET"])
+def validate():
+    token = request.cookies.get("access_token")
+    if not token:
+        return "Access denied: No token", 403
+
+    try:
+        with open("tokens.json", "r") as f:
+            tokens = json.load(f)
+    except:
+        return "Access denied: No token DB", 403
+
+    t = tokens.get(token)
+    if not t or t.get("used"):
+        return "Access denied: Invalid token", 403
+
+    if t.get("ip") and t["ip"] != request.remote_addr:
+        return "Access denied: IP mismatch", 403
+
+    now = int(time.time())
+    if now > t["valid_until"]:
+        return "Access denied: Token expired", 403
+
+    return jsonify({"access": True, "link": t["link"]}), 200
+
+
+@app.route("/unlock")
+def unlock_page():
+    return "<h1>✅ Page débloquée avec succès !</h1>"
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

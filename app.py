@@ -55,7 +55,7 @@ def generate():
             pdf.cell(0, 10, f"Merci pour votre achat - {product}", ln=True)
             pdf.set_font("Arial", '', 12)
             pdf.ln(10)
-            pdf.multi_cell(0, 10, f"Code: {token}")
+            pdf.multi_cell(0, 10, f"Code: {token}
 Durée: {duration // 60} minutes
 Lien: {link}
 {full_url}")

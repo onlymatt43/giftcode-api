@@ -8,6 +8,7 @@ import qrcode
 import zipfile
 import json
 
+# Charger le catalogue produit (durée et lien de redirection)
 try:
     with open("product_catalog.json", "r") as f:
         product_catalog = json.load(f)
@@ -16,10 +17,10 @@ except:
 
 DEFAULT_LINK = "https://monsite.com/unlock"
 DEFAULT_DURATION = 60
-app = Flask(__name__)
-
 TOKENS_FILE = "tokens.json"
 FRONTEND_URL = "https://ornate-dodol-8a4655.netlify.app"
+
+app = Flask(__name__)
 
 def load_tokens():
     if os.path.exists(TOKENS_FILE):
@@ -38,92 +39,58 @@ def generate():
         count = int(data.get("count", 5))
         duration = int(data.get("duration", 60))
         product = data.get("product", "Produit")
-        port = request.environ.get('SERVER_PORT', 5000)
 
-        tokens = []
-        pdf_files = []
-        now = int(time.time())
+        tokens = load_tokens()
+        new_tokens = []
 
         for _ in range(count):
-            token = secrets.token_hex(5).upper()
-            tokens.append({
-                "token": token,
-                "valid_until": now + duration * 60,
-                "used": False,
-                "product": product
-            })
-
-            full_url = f"{FRONTEND_URL}/?token={token}"
-
-            # QR code
-            qr = qrcode.make(full_url)
-            qr_io = io.BytesIO()
-            qr.save(qr_io, format="PNG")
-            qr_io.seek(0)
-
-            # PDF
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.multi_cell(0, 10, f"""Code: {token}
-Lien: {full_url}""")
-
-            # Ajout logo si besoin
-            # pdf.image("logo.png", x=10, y=8, w=30)
-
-            # Ajout QR
-            qr_path = f"/tmp/{token}.png"
-            with open(qr_path, "wb") as f:
-                f.write(qr_io.read())
-            pdf.image(qr_path, x=80, y=60, w=60)
-
-            pdf_path = f"/tmp/{token}.pdf"
-            pdf.output(pdf_path)
-            pdf_files.append(pdf_path)
+            token = secrets.token_urlsafe(8)
+            expires_at = int(time.time()) + duration * 60
+            tokens.append({"token": token, "valid_until": expires_at})
+            new_tokens.append(token)
 
         save_tokens(tokens)
 
-        # ZIP
-        zip_io = io.BytesIO()
-        with zipfile.ZipFile(zip_io, "w") as zipf:
-            for token, path in zip(tokens, pdf_files):
-                zipf.write(path, arcname=f"GIFT-{product}-{token['token']}.pdf")
-        zip_io.seek(0)
-
-        return send_file(zip_io, mimetype="application/zip", as_attachment=True, download_name="giftcodes.zip")
-
+        return jsonify({"tokens": new_tokens}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route("/validate", methods=["GET"])
+@app.route("/validate", methods=["POST"])
 def validate():
-    token = request.args.get("token", "")
-    tokens = load_tokens()
-    now = int(time.time())
-    for t in tokens:
-        if t["token"] == token:
-            if not t["used"] and t["valid_until"] > now:
-                return jsonify({"valid": True, "product": t["product"]})
-            return jsonify({"valid": False, "reason": "Expired or already used"})
-    return jsonify({"valid": False, "reason": "Not found"})
+    try:
+        data = request.get_json()
+        token = data.get("token")
+        tokens = load_tokens()
+
+        for t in tokens:
+            if t["token"] == token:
+                if int(time.time()) < t["valid_until"]:
+                    return jsonify({"valid": True}), 200
+                else:
+                    return jsonify({"valid": False, "reason": "expired"}), 403
+
+        return jsonify({"valid": False, "reason": "not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/payhip-webhook", methods=["POST"])
-def webhook():
+def payhip_webhook():
     try:
         payload = request.form
         product = payload.get("product_name", "Produit")
         config = product_catalog.get(product, {})
-link = config.get("link", DEFAULT_LINK)
-duration = config.get("duration", DEFAULT_DURATION)
+        link = config.get("link", DEFAULT_LINK)
+        duration = config.get("duration", DEFAULT_DURATION)
         count = int(payload.get("quantity", 1))
-link = site_by_product.get(product, DEFAULT_LINK)
+
         response = app.test_client().post("/generate", json={
             "count": count,
-            "duration": 60,
+            "duration": duration,
             "product": product
         })
 
         return (response.data, response.status_code, response.headers.items())
+
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 

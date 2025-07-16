@@ -18,62 +18,62 @@ DEFAULT_DURATION = 60  # en minutes
 
 @app.route("/payhip-webhook", methods=["POST"])
 def webhook():
+    payload = request.form or request.get_json() or {}
+    product = payload.get("product_name", "").strip()
+    ip = request.remote_addr
+
+    if not product:
+        return "Produit manquant", 400
+
+    link = product_catalog.get(product, {}).get("link", DEFAULT_LINK)
+    duration = product_catalog.get(product, {}).get("duration", DEFAULT_DURATION)
+
+    token = str(uuid.uuid4())
+    valid_until = int(time.time()) + duration * 60
+
     try:
-        payload = request.form or request.get_json() or {}
-        product = payload.get("product_name", "Produit")
-        token = secrets.token_urlsafe(12)
-
-        item = product_catalog.get(product, {})
-        link = item.get("link", DEFAULT_LINK)
-        duration = item.get("duration", DEFAULT_DURATION)
-
-        ip = request.remote_addr
-
-        try:
-            with open("tokens.json", "r") as f:
-                tokens = json.load(f)
-        except:
-            tokens = {}
-
-        tokens[token] = {
-            "valid_until": int(time.time()) + duration * 60,
-            "link": link,
-            "used": False,
-            "ip": ip
-        }
-
-        with open("tokens.json", "w") as f:
-            json.dump(tokens, f)
-
-        return jsonify({"token": token}), 200
+        conn = sqlite3.connect("tokens.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO tokens (token, link, ip, valid_until)
+            VALUES (?, ?, ?, ?)
+        """, (token, link, ip, valid_until))
+        conn.commit()
+        conn.close()
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"token": token}), 200
 
 
-@app.route("/validate", methods=["GET"])
+@app.route("/validate")
 def validate():
-    token = request.cookies.get("access_token")
+    token = request.args.get("token")
     if not token:
         return "Access denied: No token", 403
 
     try:
-        with open("tokens.json", "r") as f:
-            tokens = json.load(f)
-    except:
-        return "Access denied: No token DB", 403
+        conn = sqlite3.connect("tokens.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT link, ip, valid_until FROM tokens WHERE token = ?", (token,))
+        row = cursor.fetchone()
+        conn.close()
+    except Exception:
+        return "Access denied: DB error", 403
 
-    t = tokens.get(token)
-    if not t or t.get("used"):
+    if not row:
         return "Access denied: Invalid token", 403
 
-    if t.get("ip") and t["ip"] != request.remote_addr:
+    link, ip, valid_until = row
+
+    if ip != request.remote_addr:
         return "Access denied: IP mismatch", 403
 
     now = int(time.time())
-    if now > t["valid_until"]:
+    if now > valid_until:
         return "Access denied: Token expired", 403
 
-    return jsonify({"access": True, "link": t["link"]}), 200
+    return jsonify({"access": True, "link": link}), 200
 
 
 @app.route("/unlock")
@@ -83,3 +83,14 @@ def unlock_page():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+@app.route("/debug-tokens")
+def debug_tokens():
+    try:
+        conn = sqlite3.connect("tokens.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tokens")
+        rows = cursor.fetchall()
+        conn.close()
+        return jsonify({"tokens": rows})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500    

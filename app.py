@@ -52,6 +52,27 @@ def index():
 
 @app.route("/unlock")
 def unlock():
+    token = request.cookies.get("gift_token")
+    ip = get_ip()
+
+    if not token:
+        return "Token manquant", 400
+
+    link = is_token_valid(token, ip)
+    if not link:
+        abort(403, description="Invalid or expired token")
+
+    return render_template("unlock.html", link=link)
+
+# Ancienne logique commentée (via URL)
+# @app.route("/unlock")
+# def unlock():
+#     token = request.args.get("token")
+#     ip = get_ip()
+#     link = is_token_valid(token, ip)
+#     if not link:
+#         abort(403, description="Invalid or expired token")
+#     return render_template("unlock.html", link=link)
     token = request.args.get("token")
     ip = get_ip()
 

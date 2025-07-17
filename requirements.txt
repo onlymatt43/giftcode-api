@@ -1,4 +1,2 @@
 flask
-fpdf
-qrcode
 gunicorn

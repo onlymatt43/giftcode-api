@@ -2,18 +2,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Welcome | OnlyMatt Access</title>
+    <title>Break That Wall</title>
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: url('https://source.unsplash.com/1600x900/?video,cinema') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .frosted-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            backdrop-filter: blur(12px);
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        .frosted-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .form-box {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(16px);
+            text-align: center;
+            color: #000;
+        }
+
+        .form-box input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-box button {
+            margin-top: 1rem;
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .form-box h2 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
 </head>
 <body>
-    <h1>🎥 Welcome to OnlyMatt Access</h1>
-    <p>Redeem your gift card to unlock exclusive content.</p>
+    <div class="frosted-overlay" id="gate">
+        <div class="form-box">
+            <h2>BREAK THAT WALL by om43</h2>
+            <input type="text" id="token" />
+            <button onclick="validateToken()">GET IN</button>
+        </div>
+    </div>
 
-    <form action="/unlock" method="get">
-        <input type="text" name="token" placeholder="Enter your token" required>
-        <button type="submit">Unlock Access</button>
-    </form>
+    <script>
+        function getCookie(name) {
+            let value = `; ${document.cookie}`;
+            let parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
 
-    <hr>
-    <a href="https://payhip.com/yourstore" target="_blank">Buy a Gift Card</a>
+        window.addEventListener("DOMContentLoaded", () => {
+            const hasToken = getCookie("gift_token");
+            if (hasToken) {
+                document.getElementById("gate").classList.add("hide");
+            }
+        });
+
+        function validateToken() {
+            const token = document.getElementById("token").value.trim();
+            if (!token) return alert("Please enter a token.");
+
+            fetch("/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.valid) {
+                    const d = new Date();
+                    d.setTime(d.getTime() + data.duration * 1000);
+                    document.cookie = "gift_token=" + encodeURIComponent(token) + "; path=/; expires=" + d.toUTCString();
+                    document.getElementById("gate").classList.add("hide");
+                } else {
+                    alert("Invalid token.");
+                }
+            });
+        }
+    </script>
 </body>
 </html>

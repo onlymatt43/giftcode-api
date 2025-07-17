@@ -1,14 +1,10 @@
 {
-  "Carte Cadeau 30 min": {
-    "link": "https://onlymatt.ca/unlock",
-    "duration": 30
-  },
-  "Carte Cadeau 1H": {
-    "link": "https://video.onlymatt.ca/unlock",
-    "duration": 60
-  },
-  "Carte VIP": {
-    "link": "https://stream.onlymatt.ca/unlock",
-    "duration": 120
-  }
+    "ABC123": {
+        "link": "https://example.com/private-content",
+        "duration": 1800
+    },
+    "VIP999": {
+        "link": "https://example.com/vip-lounge",
+        "duration": 7200
+    }
 }

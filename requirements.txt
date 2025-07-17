@@ -1,4 +1,0 @@
-flask
-fpdf
-qrcode
-gunicorn

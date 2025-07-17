@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Token Generator & Merger</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    input, button, textarea {
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    label {
+      font-weight: bold;
+    }
+    textarea {
+      height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎟️ Token Generator & Merger</h2>
+
+  <label>Nombre de tokens</label>
+  <input type="number" id="count" value="5">
+
+  <label>Durée (en minutes)</label>
+  <input type="number" id="duration" placeholder="Laisse vide pour illimité">
+
+  <label>Lien vers le contenu</label>
+  <input type="text" id="link" placeholder="https://tonsite.com/acces-prive">
+
+  <button onclick="generateTokens()">Générer les tokens</button>
+
+  <label>Résultat JSON :</label>
+  <textarea id="output" readonly></textarea>
+
+  <hr>
+
+  <label>📁 Charger un fichier product_catalog.json existant :</label>
+  <input type="file" id="fileInput" accept=".json">
+
+  <button onclick="mergeTokens()">Fusionner avec catalogue</button>
+  <p id="mergeResult"></p>
+
+  <script>
+    let newTokens = {};
+
+    function generateToken(prefix = "OM43", parts = 3) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const part = () => Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+      return prefix + '-' + Array.from({length: parts}, part).join('-');
+    }
+
+    function generateTokens() {
+      const count = parseInt(document.getElementById("count").value);
+      const duration = document.getElementById("duration").value.trim();
+      const link = document.getElementById("link").value.trim();
+
+      if (!link) return alert("⚠️ Tu dois fournir un lien.");
+
+      newTokens = {};
+      for (let i = 0; i < count; i++) {
+        const token = generateToken();
+        newTokens[token] = { link: link };
+        if (duration) {
+          newTokens[token]["duration"] = parseInt(duration) * 60;
+        }
+      }
+
+      const output = JSON.stringify(newTokens, null, 2);
+      document.getElementById("output").value = output;
+      navigator.clipboard.writeText(output).then(() => {
+        alert("✅ JSON copié dans le presse-papiers !");
+      });
+    }
+
+    function mergeTokens() {
+      const fileInput = document.getElementById("fileInput");
+      if (!fileInput.files.length) {
+        alert("📁 Tu dois d'abord choisir un fichier product_catalog.json");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const existing = JSON.parse(e.target.result);
+          const merged = Object.assign({}, existing, newTokens);
+          const blob = new Blob([JSON.stringify(merged, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "product_catalog_merged.json";
+          a.click();
+          document.getElementById("mergeResult").textContent = "✅ Fichier fusionné téléchargé.";
+        } catch (err) {
+          alert("Erreur lors de la lecture ou fusion du fichier JSON.");
+        }
+      };
+      reader.readAsText(fileInput.files[0]);
+    }
+  </script>
+</body>
+</html>

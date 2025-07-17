@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Access Unlocked</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f8;
+            color: #333;
+            text-align: center;
+            padding: 50px;
+        }
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 500px;
+            margin: auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        p {
+            font-size: 18px;
+        }
+        a.button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin-top: 20px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+        a.button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ {{ product }}</h1>
+        <p>Your session duration: <strong>{{ duration }}</strong> minutes</p>
+        <p>Click the button below to begin your exclusive session:</p>
+        <a href="{{ link }}" class="button" target="_blank">🔓 Start Session</a>
+    </div>
+</body>
+</html>

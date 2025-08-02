@@ -1,0 +1,8 @@
+# Requirements optimisés pour la production
+Flask==2.3.3
+gunicorn==21.2.0
+
+# Optimisations optionnelles (ajouter selon les besoins)
+# redis==5.0.1              # Pour cache Redis
+# flask-compress==1.13      # Compression gzip automatique
+# flask-caching==2.1.0      # Cache Flask intégré

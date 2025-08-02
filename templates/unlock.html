@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Only Access - Déblocage</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        /* Container principal pour l'iframe */
+        .main-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Iframe du contenu protégé */
+        .protected-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+        
+        /* Mur opaque de protection */
+        .access-wall {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .access-wall.hidden {
+            display: none;
+        }
+        
+        /* Formulaire de déblocage */
+        .unlock-form {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .unlock-form h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        
+        .unlock-form p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            background: #ffeaea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .expired-message {
+            color: #f39c12;
+            background: #fef9e7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f39c12;
+        }
+        
+        /* Timer d'accès */
+        .access-timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(46, 125, 50, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .access-timer.warning {
+            background: rgba(255, 152, 0, 0.9);
+        }
+        
+        .access-timer.danger {
+            background: rgba(244, 67, 54, 0.9);
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Champ anti-bot caché */
+        .hidden-field {
+            display: none !important;
+            position: absolute;
+            left: -9999px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .unlock-form {
+                padding: 30px 20px;
+            }
+            
+            .access-timer {
+                top: 10px;
+                right: 10px;
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Iframe du contenu protégé (toujours présent) -->
+        {% if iframe_url %}
+            <iframe src="{{ iframe_url }}" class="protected-iframe" 
+                    title="Contenu protégé" 
+                    allow="autoplay; encrypted-media; fullscreen"></iframe>
+        {% endif %}
+        
+        <!-- Mur de protection (masque l'iframe quand code_valid = False) -->
+        <div class="access-wall {% if code_valid %}hidden{% endif %}" id="accessWall">
+            <div class="unlock-form">
+                <h2>🔐 Accès Protégé</h2>
+                <p>Entrez votre code d'accès pour débloquer le contenu</p>
+                
+                {% if error_msg %}
+                    <div class="error-message">
+                        <strong>Erreur :</strong> {{ error_msg }}
+                    </div>
+                {% endif %}
+                
+                {% if expired %}
+                    <div class="expired-message">
+                        <strong>Temps écoulé :</strong> Votre accès a expiré. Veuillez obtenir un nouveau code.
+                    </div>
+                {% endif %}
+                
+                <form method="POST" id="unlockForm">
+                    <!-- Champ anti-bot caché -->
+                    <div class="hidden-field">
+                        <input name="email" type="text" placeholder="Ne pas remplir" tabindex="-1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="access_code">Code d'accès</label>
+                        <input type="text" 
+                               id="access_code" 
+                               name="access_code" 
+                               placeholder="Ex: PREMIUM-01AB"
+                               required
+                               maxlength="20"
+                               autocomplete="off"
+                               style="text-transform: uppercase;">
+                        <small style="color: #7f8c8d; font-size: 12px;">
+                            Entrez le code fourni par votre vendeur (basé sur votre achat)
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        🔓 Débloquer l'accès
+                    </button>
+                </form>
+                
+                {% if merchant_link %}
+                    <a href="{{ merchant_link }}" target="_blank" class="btn btn-secondary">
+                        🎫 Obtenir un code d'accès
+                    </a>
+                {% endif %}
+                
+                {% if not merchant_link and not iframe_url %}
+                    <p style="margin-top: 20px; color: #7f8c8d;">
+                        <em>Page de test - Pas de contenu configuré</em>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Timer d'accès (visible seulement si accès accordé) -->
+        {% if code_valid and remaining_time %}
+            <div class="access-timer" id="accessTimer">
+                ⏱️ Temps restant: <span id="timeDisplay">{{ remaining_time }}s</span>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Variables globales
+        let remainingTime = {{ remaining_time or 0 }};
+        let timerInterval = null;
+        let codeValid = {{ 'true' if code_valid else 'false' }};
+        
+        // Fonction de formatage du temps
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+        
+        // Fonction de mise à jour du timer
+        function updateTimer() {
+            const timerElement = document.getElementById('accessTimer');
+            const timeDisplay = document.getElementById('timeDisplay');
+            const accessWall = document.getElementById('accessWall');
+            
+            if (remainingTime <= 0) {
+                // Temps écoulé
+                clearInterval(timerInterval);
+                if (timerElement) timerElement.remove();
+                if (accessWall) {
+                    accessWall.classList.remove('hidden');
+                    accessWall.innerHTML = `
+                        <div class="unlock-form">
+                            <h2>⏰ Temps écoulé</h2>
+                            <p>Votre accès a expiré. Veuillez obtenir un nouveau code.</p>
+                            {% if merchant_link %}
+                                <a href="{{ merchant_link }}" target="_blank" class="btn btn-secondary">
+                                    🎫 Obtenir un nouveau code
+                                </a>
+                            {% endif %}
+                            <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 10px;">
+                                🔄 Recharger la page
+                            </button>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Mise à jour de l'affichage
+            if (timeDisplay) {
+                timeDisplay.textContent = formatTime(remainingTime);
+            }
+            
+            // Changement de couleur selon le temps restant
+            if (timerElement) {
+                timerElement.className = 'access-timer';
+                if (remainingTime <= 300) { // 5 minutes
+                    timerElement.className += ' warning';
+                }
+                if (remainingTime <= 60) { // 1 minute
+                    timerElement.className += ' danger';
+                }
+            }
+            
+            remainingTime--;
+        }
+        
+        // Démarrage du timer si accès accordé
+        if (codeValid && remainingTime > 0) {
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer(); // Première mise à jour immédiate
+        }
+        
+        // Validation du formulaire côté client
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('unlockForm');
+            const codeInput = document.getElementById('access_code');
+            
+            if (form && codeInput) {
+                // Formatage automatique du code en majuscules
+                codeInput.addEventListener('input', function() {
+                    this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                });
+                
+                // Validation avant soumission
+                form.addEventListener('submit', function(e) {
+                    const code = codeInput.value.trim();
+                    if (code.length < 6) {
+                        e.preventDefault();
+                        alert('Le code doit contenir au moins 6 caractères.');
+                        codeInput.focus();
+                    }
+                });
+            }
+        });
+        
+        // Vérification périodique du temps restant (API)
+        if (codeValid) {
+            setInterval(function() {
+                fetch('/api/check-time', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.valid && codeValid) {
+                        // Session expirée, recharger la page
+                        location.reload();
+                    } else if (data.valid && Math.abs(data.remaining - remainingTime) > 2) {
+                        // Synchroniser le timer avec le serveur
+                        remainingTime = data.remaining;
+                    }
+                })
+                .catch(err => console.log('Erreur de vérification:', err));
+            }, 30000); // Vérification toutes les 30 secondes
+        }
+    </script>
+</body>
+</html>

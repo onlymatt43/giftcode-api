@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Only Access - Déblocage</title>
+    
+    <!-- CSS inline pour éviter une requête supplémentaire -->
+    <style>
+        /* CSS critique inline pour le premier rendu */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .unlock-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+        }
+        
+        /* Mur opaque optimisé avec transform3d pour GPU */
+        .wall {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate3d(0, 0, 0);
+            will-change: opacity;
+        }
+        
+        .wall.fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        
+        /* Spinner optimisé CSS-only */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translate3d(0, 0, 0);
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Timer optimisé */
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .iframe-container {
+            width: 100%;
+            height: 70vh;
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+        
+        .access-form input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        
+        .access-form button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+        }
+        
+        .access-form button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fdf2f2;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mur opaque avec spinner -->
+    {% if not code_valid %}
+    <div class="wall" id="wall">
+        <div style="text-align: center; color: white;">
+            <div class="spinner"></div>
+            <p style="margin-top: 20px; font-size: 18px;">Chargement sécurisé...</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="unlock-container">
+        {% if code_valid %}
+            <!-- Timer optimisé avec requestAnimationFrame -->
+            <div class="timer" id="timer">⏱️ Temps restant: <span id="time-display">{{ remaining_time // 60 }}:{{ "%02d"|format(remaining_time % 60) }}</span></div>
+            
+            <!-- iframe avec loading lazy -->
+            <iframe 
+                src="{{ iframe_url }}" 
+                class="iframe-container"
+                loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+                referrerpolicy="no-referrer">
+            </iframe>
+            
+            {% if merchant_link %}
+            <div style="margin-top: 20px;">
+                <a href="{{ merchant_link }}" target="_blank" style="color: #667eea; text-decoration: none;">
+                    🛒 Acheter plus d'accès
+                </a>
+            </div>
+            {% endif %}
+        {% else %}
+            <h1>🔐 Zone Protégée</h1>
+            <p>Entrez votre code d'accès pour débloquer le contenu</p>
+            
+            {% if error_msg %}
+                <div class="error">{{ error_msg }}</div>
+            {% endif %}
+            
+            {% if expired %}
+                <div class="error">⏰ Votre accès a expiré</div>
+            {% endif %}
+            
+            <form method="POST" class="access-form">
+                <!-- Champ anti-bot caché -->
+                <input type="email" name="email" style="display: none;" tabindex="-1" autocomplete="off">
+                
+                <input 
+                    type="text" 
+                    name="access_code" 
+                    placeholder="Code d'accès (ex: PREMIUM1H-01AB)"
+                    maxlength="20"
+                    required
+                    autocomplete="off"
+                    spellcheck="false">
+                
+                <button type="submit">🚀 Débloquer l'accès</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <!-- JavaScript optimisé -->
+    <script>
+        // Timer optimisé avec requestAnimationFrame
+        {% if code_valid and remaining_time %}
+        let timeLeft = {{ remaining_time }};
+        const timeDisplay = document.getElementById('time-display');
+        const timer = document.getElementById('timer');
+        
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                timer.innerHTML = '⏰ <span style="color: #e74c3c;">Accès expiré</span>';
+                setTimeout(() => location.reload(), 2000);
+                return;
+            }
+            
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            timeLeft--;
+            
+            // Utiliser requestAnimationFrame pour de meilleures performances
+            if (timeLeft > 0) {
+                setTimeout(() => requestAnimationFrame(updateTimer), 1000);
+            }
+        }
+        
+        // Démarrer le timer
+        requestAnimationFrame(updateTimer);
+        
+        // Vérification périodique côté serveur (toutes les 30 secondes)
+        setInterval(() => {
+            fetch('/api/check-time', { 
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.valid) {
+                    location.reload();
+                }
+            })
+            .catch(() => {}); // Ignorer les erreurs réseau
+        }, 30000);
+        {% endif %}
+        
+        // Animation du mur opaque
+        const wall = document.getElementById('wall');
+        if (wall) {
+            // Retarder légèrement pour l'effet visuel
+            setTimeout(() => {
+                wall.classList.add('fade-out');
+                setTimeout(() => wall.style.display = 'none', 500);
+            }, 1000);
+        }
+        
+        // Optimisation: précharger les ressources critiques
+        if ('{{ code_valid }}' === 'True') {
+            // Précharger la favicon du site
+            const link = document.createElement('link');
+            link.rel = 'dns-prefetch';
+            link.href = '{{ iframe_url }}';
+            document.head.appendChild(link);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Only Access - Administration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        /* Page de connexion */
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #ffeaea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #eafaf1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        /* Sections du panel admin */
+        .admin-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .admin-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .table th,
+        .table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-unused {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-active {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-expired {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        
+        .code-list {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .code-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Only Access</h1>
+            <p>Système de gestion d'accès sécurisé</p>
+            {% if admin_mode %}
+                <a href="{{ url_for('logout') }}" class="btn btn-danger logout-btn">Déconnexion</a>
+            {% endif %}
+        </div>
+        
+        <div class="content">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+            
+            {% if success %}
+                <div class="success">{{ success }}</div>
+            {% endif %}
+            
+            {% if not admin_mode %}
+                <!-- PAGE DE CONNEXION -->
+                <div class="login-form">
+                    <h2 style="margin-bottom: 30px; color: #2c3e50;">Connexion Administration</h2>
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="username">Nom d'utilisateur</label>
+                            <input type="text" id="username" name="username" placeholder="adminonly" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Mot de passe</label>
+                            <input type="password" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn">Se connecter</button>
+                    </form>
+                </div>
+            {% else %}
+                <!-- PANEL D'ADMINISTRATION -->
+                
+                <!-- Section 1: Création de Title/Iframe -->
+                <div class="admin-section">
+                    <h2>📁 Créer une nouvelle Famille (Title Parent)</h2>
+                    <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3498db;">
+                        <strong>🏠 Système de Familles :</strong><br>
+                        Chaque famille possède un <strong>token parent unique</strong> qui garantit la séparation stricte entre les familles.
+                        Les codes enfants ne peuvent être utilisés que dans leur famille d'origine.
+                        <br><br>
+                        <strong>💡 Comment ça marche :</strong><br>
+                        1️⃣ Vous créez une famille avec l'URL de votre site à protéger<br>
+                        2️⃣ Le système génère automatiquement une iframe d'intégration<br>
+                        3️⃣ Vous intégrez cette iframe sur votre site pour protéger le contenu
+                    </div>
+                    <form method="POST">
+                        <input type="hidden" name="create_title" value="1">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="title">Nom de la Famille (Title)</label>
+                                <input type="text" id="title" name="title" placeholder="ex: Site-Premium-VIP" required>
+                                <small style="color: #7f8c8d; font-size: 12px;">Ce nom doit être unique - un token parent sera généré automatiquement</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="source_url">🌐 URL du site à protéger</label>
+                                <input type="url" id="source_url" name="source_url" placeholder="https://mon-site-premium.com/contenu-vip" required>
+                                <small style="color: #27ae60; font-size: 12px;">
+                                    <strong>Important :</strong> Cette URL sera le contenu affiché après déblocage du code d'accès.<br>
+                                    Exemple : https://formation.com/module-premium ou https://blog.com/article-vip
+                                </small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="merchant_link">🛒 Lien Marchand (optionnel)</label>
+                            <input type="url" id="merchant_link" name="merchant_link" placeholder="https://boutique.com/acheter-codes-acces">
+                            <small style="color: #7f8c8d; font-size: 12px;">
+                                Lien vers votre page de vente de codes d'accès - sera affiché comme bouton "Acheter plus d'accès"
+                            </small>
+                        </div>
+                        <button type="submit" class="btn">💾 Créer la Famille et Générer l'Iframe</button>
+                        <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px; font-size: 14px;">
+                            <strong>� Résultat après création :</strong><br>
+                            <code style="background: white; padding: 5px; border-radius: 3px;">
+                                https://only-access.onrender.com/unlock/[VOTRE-TITLE]
+                            </code><br>
+                            <small>Cette URL d'iframe sera générée automatiquement pour intégrer la protection sur votre site.</small><br>
+                            <strong>📋 Après création :</strong> Cliquez sur "Info" pour obtenir le code HTML complet d'intégration.
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Section 2: Génération de codes -->
+                {% if iframe_data %}
+                <div class="admin-section">
+                    <h2>🎫 Générer des codes d'accès</h2>
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
+                        <strong>💡 Codes intelligents :</strong><br>
+                        Le système génère des codes <strong>basés sur le sous-titre</strong> pour faciliter la distribution.
+                        <br>Exemple : Sous-titre "Premium 1H" → Code utilisateur "PREMIUM1H-01AB"
+                        <br><small>Un hash technique invisible sécurise chaque code.</small>
+                    </div>
+                    <form method="POST">
+                        <input type="hidden" name="generate_codes" value="1">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selected_title">Famille existante</label>
+                                <select id="selected_title" name="selected_title" required>
+                                    <option value="">Choisir une famille...</option>
+                                    {% for item in iframe_data %}
+                                        <option value="{{ item.title }}">{{ item.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="subtitle">Sous-titre (base du code utilisateur)</label>
+                                <input type="text" id="subtitle" name="subtitle" placeholder="ex: Premium 1H, VIP Access, Basic Plan" required>
+                                <small style="color: #7f8c8d; font-size: 12px;">Ce texte sera utilisé pour créer des codes reconnaissables</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="duration">Durée (en minutes)</label>
+                                <input type="number" id="duration" name="duration" value="20" min="1" max="1440" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="count">Nombre de codes à générer</label>
+                                <input type="number" id="count" name="count" value="1" min="1" max="100" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn">Générer les codes</button>
+                    </form>
+                    
+                    {% if generated_codes %}
+                        <div class="code-list">
+                            <h3>✅ Codes générés avec succès :</h3>
+                            {% for code_info in generated_codes %}
+                                <div class="code-item">
+                                    <strong>Code utilisateur :</strong> {{ code_info.user_code }}
+                                    <br><small style="color: #666;">Sous-titre : {{ code_info.subtitle }}</small>
+                                    <br><small style="color: #999; font-size: 10px;">Hash technique : {{ code_info.technical_hash }}</small>
+                                </div>
+                            {% endfor %}
+                            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; font-size: 13px;">
+                                <strong>📋 Instructions :</strong> Donnez uniquement le <strong>Code utilisateur</strong> à vos clients. 
+                                Le hash technique reste invisible et sécurise le système.
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Section 3: Liste des Titles -->
+                {% if iframe_data %}
+                <div class="admin-section">
+                    <h2>📋 Titles existants</h2>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title (Famille)</th>
+                                    <th>Token Parent</th>
+                                    <th>Site à protéger</th>
+                                    <th>URL d'intégration</th>
+                                    <th>Merchant Link</th>
+                                    <th>Date création</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in iframe_data %}
+                                <tr>
+                                    <td><strong>{{ item.title }}</strong></td>
+                                    <td>
+                                        <code style="background: #e8f5e8; padding: 3px 6px; border-radius: 3px; font-size: 11px; color: #2e7d32;">
+                                            {{ item.parent_token }}
+                                        </code>
+                                    </td>
+                                    <td><a href="{{ item.source_url }}" target="_blank">{{ item.source_url[:40] }}...</a></td>
+                                    <td>
+                                        <code style="background: #f8f9fa; padding: 5px; border-radius: 3px; font-size: 11px;">
+                                            {{ item.iframe_url }}
+                                        </code>
+                                        <br><small style="color: #7f8c8d;">À intégrer dans votre site</small>
+                                    </td>
+                                    <td>
+                                        {% if item.merchant_link %}
+                                            <a href="{{ item.merchant_link }}" target="_blank">{{ item.merchant_link[:25] }}...</a>
+                                        {% else %}
+                                            <em>Non défini</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.created[:10] if item.created else 'N/A' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('title_info', title=item.title) }}" class="btn btn-small" style="background: #27ae60; margin-right: 5px;">Info</a>
+                                        <form method="POST" action="{{ url_for('delete_title') }}" style="display: inline;" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette famille et tous ses codes enfants ?')">
+                                            <input type="hidden" name="title_to_delete" value="{{ item.title }}">
+                                            <button type="submit" class="btn btn-danger btn-small">Supprimer</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Section 4: Liste des codes générés -->
+                {% if access_codes %}
+                <div class="admin-section">
+                    <h2>🎟️ Codes d'accès générés</h2>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Code Utilisateur</th>
+                                    <th>Hash Technique</th>
+                                    <th>Famille (Title)</th>
+                                    <th>Token Parent</th>
+                                    <th>Sous-titre</th>
+                                    <th>Durée</th>
+                                    <th>Statut</th>
+                                    <th>IP utilisateur</th>
+                                    <th>Date création</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hash_key, data in access_codes.items() %}
+                                <tr>
+                                    <td>
+                                        <strong style="color: #2e7d32;">{{ data.user_code or 'N/A' }}</strong>
+                                        <br><small style="color: #666; font-size: 11px;">À donner au client</small>
+                                    </td>
+                                    <td>
+                                        <code style="background: #f8f9fa; padding: 2px 4px; border-radius: 3px; font-size: 10px;">
+                                            {{ hash_key[:8] }}...
+                                        </code>
+                                    </td>
+                                    <td><strong>{{ data.title }}</strong></td>
+                                    <td>
+                                        <code style="background: #e8f5e8; padding: 2px 4px; border-radius: 3px; font-size: 10px; color: #2e7d32;">
+                                            {{ data.parent_token[:12] if data.parent_token else 'N/A' }}...
+                                        </code>
+                                    </td>
+                                    <td>{{ data.subtitle }}</td>
+                                    <td>{{ data.duration }} min</td>
+                                    <td>
+                                        <span class="status-badge status-{{ data.status or 'unused' }}">
+                                            {{ data.status or 'unused' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ data.used_by or '-' }}</td>
+                                    <td>{{ data.created[:10] if data.created else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if not iframe_data and not access_codes %}
+                <div class="admin-section" style="text-align: center;">
+                    <h2>🚀 Bienvenue dans Only Access !</h2>
+                    <p>Commencez par créer votre premier Title pour protéger un site web.</p>
+                </div>
+                {% endif %}
+                
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

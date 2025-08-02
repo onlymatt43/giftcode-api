@@ -99,13 +99,13 @@ def add_performance_headers(response):
     return response
 
 # Configuration des URLs
-PRODUCTION_URL = "https://only-access.onrender.com"
+PRODUCTION_URL = "https://giftcode-api.onrender.com"
 LOCAL_URL = "http://localhost:5000"
 
 def get_base_url():
     """Retourne l'URL de base selon l'environnement"""
-    # En production, utiliser l'URL Render
-    if os.getenv("RENDER") or "onrender.com" in request.host:
+    # En production Render, utiliser l'URL configurée
+    if os.getenv("RENDER") or "giftcode-api.onrender.com" in request.host or "onrender.com" in request.host:
         return PRODUCTION_URL
     # En local ou autre environnement
     return request.url_root.rstrip('/')

@@ -142,6 +142,30 @@ def load_data():
             access_codes = {}
     except:
         access_codes = {}
+    
+    # Migration : Corriger les anciennes URLs
+    migrate_old_urls()
+
+def migrate_old_urls():
+    """Migre les anciennes URLs vers la bonne URL de production"""
+    global iframe_data
+    updated = False
+    
+    for item in iframe_data:
+        # Corriger les URLs avec l'ancien domaine
+        if 'iframe_url' in item and 'only-access.onrender.com' in item['iframe_url']:
+            old_url = item['iframe_url']
+            item['iframe_url'] = old_url.replace('only-access.onrender.com', 'giftcode-api.onrender.com')
+            updated = True
+            print(f"Migrated URL: {old_url} -> {item['iframe_url']}")
+        
+        if 'base_domain' in item and 'only-access.onrender.com' in item['base_domain']:
+            item['base_domain'] = item['base_domain'].replace('only-access.onrender.com', 'giftcode-api.onrender.com')
+            updated = True
+    
+    if updated:
+        save_data()
+        print("Migration des URLs terminée!")
 
 def save_data():
     """Sauvegarde les données dans les fichiers JSON"""

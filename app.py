@@ -323,9 +323,9 @@ def admin_panel():
                                              admin_mode=True,
                                              error=error_msg)
                     
-                    # Générer automatiquement l'URL de l'iframe
+                    # Générer automatiquement l'URL de l'iframe (générique, sans titre)
                     base_url = get_base_url()
-                    iframe_url = f"{base_url}/unlock/{title}"
+                    iframe_url = f"{base_url}/unlock"
                     
                     iframe_data.append({
                         'title': title,
@@ -341,18 +341,18 @@ def admin_panel():
                     # Message de succès avec informations complètes
                     success_msg = f"""✅ Famille '{title}' créée avec succès !
                     
-🔗 URL de la PORTE D'ENTRÉE : {iframe_url}
+🔗 URL du MUR NUMÉRIQUE : {iframe_url}
 
-📋 COMMENT ÇA FONCTIONNE :
-1️⃣ Intégrez cette porte d'entrée sur votre site
-2️⃣ Vos visiteurs y saisissent leur code CARTE BLANCHE
-3️⃣ Après validation → Redirection automatique vers : {source_url}
-4️⃣ Générez des codes d'accès dans la section 2
+🧱 COMMENT FONCTIONNE HIT-THE-WALL :
+1️⃣ Intégrez ce mur numérique sur votre site (zone à protéger)
+2️⃣ Vos visiteurs "frappent le mur" et doivent saisir leur CARTE BLANCHE
+3️⃣ Après validation du code → Le mur s'effondre et révèle : {source_url}
+4️⃣ Générez des codes CARTE BLANCHE dans la section 2
 
-💡 Code iframe pour votre site :
+💡 Code iframe pour créer votre HIT-THE-WALL :
 <iframe src="{iframe_url}" width="100%" height="600px" frameborder="0"></iframe>
 
-🎯 Titre "{title}" = Nom de famille (pour votre organisation interne)"""
+🎯 Titre "{title}" = Nom de famille pour organiser vos différents murs"""
 
                     return render_template('admin.html', 
                                          iframe_data=iframe_data, 

@@ -341,16 +341,18 @@ def admin_panel():
                     # Message de succès avec informations complètes
                     success_msg = f"""✅ Famille '{title}' créée avec succès !
                     
-🔗 URL d'intégration générée : {iframe_url}
+🔗 URL de la PORTE D'ENTRÉE : {iframe_url}
 
-📋 ÉTAPES SUIVANTES :
-1️⃣ Copiez cette URL d'intégration 
-2️⃣ Intégrez-la dans une iframe sur votre site
-3️⃣ Générez des codes d'accès dans la section 2
-4️⃣ Distribuez les codes à vos utilisateurs
+📋 COMMENT ÇA FONCTIONNE :
+1️⃣ Intégrez cette porte d'entrée sur votre site
+2️⃣ Vos visiteurs y saisissent leur code CARTE BLANCHE
+3️⃣ Après validation → Redirection automatique vers : {source_url}
+4️⃣ Générez des codes d'accès dans la section 2
 
-💡 Code iframe exemple :
-<iframe src="{iframe_url}" width="100%" height="600px" frameborder="0"></iframe>"""
+💡 Code iframe pour votre site :
+<iframe src="{iframe_url}" width="100%" height="600px" frameborder="0"></iframe>
+
+🎯 Titre "{title}" = Nom de famille (pour votre organisation interne)"""
 
                     return render_template('admin.html', 
                                          iframe_data=iframe_data, 

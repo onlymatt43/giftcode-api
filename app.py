@@ -79,7 +79,8 @@ def add_performance_headers(response):
     """Ajoute les headers de performance"""
     # Headers de sécurité et performance
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    # Permettre l'iframe sur tous les sites (nécessaire pour HIT THE WALL)
+    response.headers['X-Frame-Options'] = 'ALLOWALL'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
     # Cache intelligent selon le type de contenu

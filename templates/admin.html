@@ -246,7 +246,13 @@
             {% endif %}
             
             {% if success %}
-                <div class="success">{{ success }}</div>
+                <div class="success" style="position: relative;">
+                    <div style="white-space: pre-line; line-height: 1.6;">{{ success }}</div>
+                    <button onclick="this.parentElement.style.display='none'" 
+                            style="position: absolute; top: 10px; right: 15px; background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                        ✓ OK
+                    </button>
+                </div>
             {% endif %}
             
             {% if not admin_mode %}
